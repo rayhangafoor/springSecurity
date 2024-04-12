@@ -1,5 +1,6 @@
 package com.april.config;
 
+import com.april.model.Authority;
 import com.april.model.Customer;
 import com.april.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,18 +32,23 @@ public class KoraBankUsernamePwdAuthenticationProvider implements Authentication
         String username = authentication.getName();
         String password = authentication.getCredentials().toString();
         List<Customer> customer = customerRepository.findByEmail(username);
-        if(customer != null && !customer.isEmpty()) {
-            if (passwordEncoder.matches(password, customer.get(0).getPwd())){
-                List<GrantedAuthority> authorities = new ArrayList<>();
-                authorities.add(new SimpleGrantedAuthority(customer.get(0).getRole()));
-                return new UsernamePasswordAuthenticationToken(username, password, authorities);
-            }else{
-                    throw new BadCredentialsException("invalid password");
+        if (customer != null && !customer.isEmpty()) {
+            if (passwordEncoder.matches(password, customer.get(0).getPwd())) {
+                return new UsernamePasswordAuthenticationToken(username, password, getGrantedAuthorities(customer.get(0)));
+            } else {
+                throw new BadCredentialsException("invalid password");
             }
-        }
-        else{
+        } else {
             throw new BadCredentialsException("No registered user found");
         }
+    }
+
+    private List<GrantedAuthority> getGrantedAuthorities(Customer customer) {
+        List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+        for (Authority authority : customer.getAuthorities()) {
+            grantedAuthorities.add(new SimpleGrantedAuthority(authority.getName()));
+        }
+        return grantedAuthorities;
     }
 
     @Override
